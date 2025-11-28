@@ -5,6 +5,3 @@
 skip_path:
   # All TFLint test fixtures (intentionally contain bad patterns)
   - tests/**
-
-  # Optional: exclude examples as well if they’re only docs/demo
-  - examples/**
