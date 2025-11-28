@@ -12,11 +12,6 @@ inputs:
     required: false
     default: '.'
   
-  tflint_version:
-    description: 'TFLint version to use (e.g., v0.54.0 or latest)'
-    required: false
-    default: 'v0.54.0'
-  
   tflint_recursive:
     description: 'Run TFLint recursively on subdirectories'
     required: false
@@ -47,10 +42,6 @@ inputs:
     required: false
     default: 'compact'
   
-  github_token:
-    description: 'GitHub token for authentication (defaults to GITHUB_TOKEN)'
-    required: false
-    default: ''
 
 outputs:
   tflint_exit_code:
@@ -77,12 +68,13 @@ runs:
         restore-keys: |
           ${{ runner.os }}-tflint-
     
-    # Setup TFLint
-    - name: Setup TFLint
-      uses: terraform-linters/setup-tflint@v4
-      with:
-        tflint_version: ${{ inputs.tflint_version }}
-        github_token: ${{ inputs.github_token || github.token }}
+    # Install TFLint using official install script
+    - name: Install TFLint
+      shell: bash
+      run: |
+        curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+        echo "Installed TFLint:"
+        tflint --version
     
     # Verify TFLint installation
     - name: Show TFLint Version
@@ -222,7 +214,6 @@ runs:
         echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
         echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
         echo "| Working Directory | \`${{ inputs.working_directory }}\` |" >> $GITHUB_STEP_SUMMARY
-        echo "| TFLint Version | \`${{ inputs.tflint_version }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| Recursive Scan | \`${{ inputs.tflint_recursive }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| Output Format | \`${{ inputs.output_format }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| AWS Plugin Version | \`${{ inputs.aws_plugin_version }}\` |" >> $GITHUB_STEP_SUMMARY
