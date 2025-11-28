@@ -2,7 +2,7 @@
 # We exclude test fixtures and example snippets so Checkov focuses
 # on "real" code and not intentionally broken Terraform test cases.
 
-skip_paths:
+skip_path:
   # All TFLint test fixtures (intentionally contain bad patterns)
   - tests/**
 
