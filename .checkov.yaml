@@ -1,3 +1,5 @@
-skip-path:
-  # All TFLint test fixtures (intentionally contain bad patterns)
-  - tests/**
+skip_paths:
+  # All TFLint test fixtures (intentionally invalid Terraform configurations)
+  - '^tests/.*'
+  # Example usage directories (intentionally invalid Terraform configurations)
+  - '^examples/.*'
