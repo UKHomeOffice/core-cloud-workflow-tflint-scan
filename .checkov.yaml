@@ -1,0 +1,10 @@
+# Local Checkov configuration for this repository
+# We exclude test fixtures and example snippets so Checkov focuses
+# on "real" code and not intentionally broken Terraform test cases.
+
+skip_paths:
+  # All TFLint test fixtures (intentionally contain bad patterns)
+  - tests/**
+
+  # Optional: exclude examples as well if they’re only docs/demo
+  - examples/**
