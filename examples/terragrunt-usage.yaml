@@ -1,0 +1,24 @@
+name: TFLint Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  tflint:
+    name: TFLint Terragrunt Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Run TFLint
+        uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v1
+        with:
+          working_directory: '.'
+          tflint_recursive: true

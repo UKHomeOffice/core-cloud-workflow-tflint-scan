@@ -1,0 +1,24 @@
+name: TFLint with Custom Config
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  tflint:
+    name: TFLint Custom Rules
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Run TFLint with Custom Config
+        uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v1
+        with:
+          custom_config_path: '.tflint.hcl'
+          tflint_recursive: true

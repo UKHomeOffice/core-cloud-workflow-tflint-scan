@@ -1,0 +1,27 @@
+name: TFLint Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  tflint:
+    name: Run TFLint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Run TFLint Scan
+        uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v1
+        with:
+          tflint_recursive: true
+          fail_on_error: true

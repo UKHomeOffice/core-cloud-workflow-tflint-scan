@@ -1,0 +1,24 @@
+name: TFLint Module Directory
+
+on:
+  pull_request:
+    paths:
+      - 'modules/aws/**'
+
+permissions:
+  contents: read
+
+jobs:
+  tflint:
+    name: TFLint AWS Modules
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Run TFLint on AWS Modules
+        uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v1
+        with:
+          working_directory: 'modules/aws'
+          tflint_recursive: true

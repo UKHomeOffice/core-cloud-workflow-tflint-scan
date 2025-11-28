@@ -1,0 +1,33 @@
+# Terraform local state files
+**/.terraform/
+**/.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate
+*.tfstate.backup
+
+# Terragrunt
+**/.terragrunt-cache/
+**/.terraform.tfstate.lock.info
+
+# TFLint plugin downloads
+~/.tflint.d/
+
+# VSCode / IDE files
+.vscode/
+.idea/
+
+# Shell scripts outputs
+*.log
+
+# MacOS
+.DS_Store
+
+# Python / misc
+__pycache__/
+
+# ignore terraform cache in test folders
+tests/**/.terraform/
+tests/**/.terraform.lock.hcl
+tests/**/terraform.tfstate*
+

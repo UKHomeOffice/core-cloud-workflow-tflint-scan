@@ -1,0 +1,104 @@
+name: Self Test - TFLint Action
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-valid:
+    name: Test - Valid Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run TFLint (valid config)
+        uses: ./
+        with:
+          working_directory: 'tests/test-terraform-valid'
+          custom_config_path: 'tests/test-terraform-valid/.tflint.hcl'
+          tflint_recursive: true
+          fail_on_error: true
+
+  test-invalid:
+    name: Test - Invalid Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run TFLint (invalid config)
+        id: tflint
+        uses: ./
+        with:
+          working_directory: 'tests/test-terraform-invalid'
+          custom_config_path: 'tests/test-terraform-invalid/.tflint.hcl'
+          tflint_recursive: true
+          fail_on_error: false  # allow job to continue even if TFLint finds issues
+
+      - name: Assert failure
+        run: |
+          if [ "${{ steps.tflint.outputs.tflint_exit_code }}" -eq 0 ]; then
+            echo "Expected TFLint to fail but it succeeded."
+            exit 1
+          fi
+
+  test-aws-provider-issues:
+    name: Test - AWS Provider Issues
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run TFLint (AWS provider issues)
+        id: tflint
+        uses: ./
+        with:
+          working_directory: 'tests/test-aws-provider-issues'
+          custom_config_path: 'tests/test-aws-provider-issues/.tflint.hcl'
+          tflint_recursive: true
+          fail_on_error: false
+
+      - name: Assert failure
+        run: |
+          if [ "${{ steps.tflint.outputs.tflint_exit_code }}" -eq 0 ]; then
+            echo "Expected TFLint to fail for AWS provider issues but it succeeded."
+            exit 1
+          fi
+
+  test-terragrunt:
+    name: Test - Terragrunt Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run TFLint (Terragrunt)
+        uses: ./
+        with:
+          working_directory: 'tests/test-terragrunt'
+          custom_config_path: 'tests/test-terragrunt/.tflint.hcl'
+          tflint_recursive: true
+          fail_on_error: true
+
+  test-custom-config:
+    name: Test - Custom Config (strict rules)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run TFLint with custom config
+        id: tflint
+        uses: ./ # Use the composite action in this repo
+        with:
+          working_directory: 'tests/test-custom-config'
+          custom_config_path: 'tests/test-custom-config/.tflint.hcl'
+          tflint_recursive: true
+          fail_on_error: false
+
+      - name: Assert failure (strict rules)
+        run: |
+          if [ "${{ steps.tflint.outputs.tflint_exit_code }}" -eq 0 ]; then
+            echo "Expected custom config test to fail (strict rules) but it succeeded."
+            exit 1
+          fi

@@ -1,0 +1,240 @@
+name: 'TFLint Scan'
+description: 'Run TFLint security and linting checks on Terraform/Terragrunt code'
+author: 'Core Cloud Platform Team'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  working_directory:
+    description: 'Directory to run TFLint in (relative to repository root)'
+    required: false
+    default: '.'
+  
+  tflint_version:
+    description: 'TFLint version to use (e.g., v0.54.0 or latest)'
+    required: false
+    default: 'v0.54.0'
+  
+  tflint_recursive:
+    description: 'Run TFLint recursively on subdirectories'
+    required: false
+    default: 'true'
+  
+  custom_config_path:
+    description: 'Path to custom .tflint.hcl file (relative to repo root). Leave empty to use default config.'
+    required: false
+    default: ''
+  
+  fail_on_error:
+    description: 'Fail the action if TFLint finds issues'
+    required: false
+    default: 'true'
+  
+  aws_plugin_version:
+    description: 'TFLint AWS plugin version'
+    required: false
+    default: '0.40.0'
+  
+  terraform_plugin_preset:
+    description: 'Terraform plugin preset (recommended, all)'
+    required: false
+    default: 'recommended'
+  
+  output_format:
+    description: 'TFLint output format (default, compact, json, checkstyle, junit, sarif)'
+    required: false
+    default: 'compact'
+  
+  github_token:
+    description: 'GitHub token for authentication (defaults to GITHUB_TOKEN)'
+    required: false
+    default: ''
+
+outputs:
+  tflint_exit_code:
+    description: 'Exit code from TFLint execution (0 = success, >0 = issues found)'
+    value: ${{ steps.tflint-scan.outputs.exit_code }}
+  
+  tflint_result:
+    description: 'Result of TFLint scan (success or failure)'
+    value: ${{ steps.tflint-scan.outputs.result }}
+
+runs:
+  using: 'composite'
+  steps:
+    # Optional: checkout so the action is self-contained
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Cache TFLint plugins for faster runs
+    - name: Cache TFLint Plugins
+      uses: actions/cache@v4
+      with:
+        path: ~/.tflint.d/plugins
+        key: ${{ runner.os }}-tflint-${{ hashFiles('**/.tflint.hcl') }}-${{ inputs.aws_plugin_version }}
+        restore-keys: |
+          ${{ runner.os }}-tflint-
+    
+    # Setup TFLint
+    - name: Setup TFLint
+      uses: terraform-linters/setup-tflint@v4
+      with:
+        tflint_version: ${{ inputs.tflint_version }}
+        github_token: ${{ inputs.github_token || github.token }}
+    
+    # Verify TFLint installation
+    - name: Show TFLint Version
+      shell: bash
+      run: tflint --version
+    
+    # Resolve configuration: custom config > repo .tflint.hcl > generated config
+    - name: Resolve TFLint Configuration
+      shell: bash
+      run: |
+        # 1) Custom config provided
+        if [ -n "${{ inputs.custom_config_path }}" ]; then
+          CUSTOM_CONFIG="${{ github.workspace }}/${{ inputs.custom_config_path }}"
+
+          if [ ! -f "$CUSTOM_CONFIG" ]; then
+            echo "::error::Custom config file not found at: ${{ inputs.custom_config_path }}"
+            exit 1
+          fi
+
+          echo "::group::Using Custom TFLint Configuration"
+          cat "$CUSTOM_CONFIG"
+          echo "::endgroup::"
+
+          echo "TFLINT_CONFIG=$CUSTOM_CONFIG" >> $GITHUB_ENV
+          exit 0
+        fi
+
+        # 2) Repo-level .tflint.hcl exists
+        if [ -f "${{ github.workspace }}/.tflint.hcl" ]; then
+          echo "::group::Using existing .tflint.hcl from repository root"
+          cat "${{ github.workspace }}/.tflint.hcl"
+          echo "::endgroup::"
+
+          echo "TFLINT_CONFIG=${{ github.workspace }}/.tflint.hcl" >> $GITHUB_ENV
+          exit 0
+        fi
+
+        # 3) Generate a default config
+        CONFIG_FILE="${{ github.workspace }}/.tflint.generated.hcl"
+
+        cat > "$CONFIG_FILE" << EOF
+        plugin "terraform" {
+          enabled = true
+          preset  = "${{ inputs.terraform_plugin_preset }}"
+        }
+
+        plugin "aws" {
+          enabled = true
+          version = "${{ inputs.aws_plugin_version }}"
+          source  = "github.com/terraform-linters/tflint-ruleset-aws"
+        }
+        EOF
+
+        echo "::group::Generated TFLint Configuration"
+        cat "$CONFIG_FILE"
+        echo "::endgroup::"
+
+        echo "TFLINT_CONFIG=$CONFIG_FILE" >> $GITHUB_ENV
+    
+    # Initialize TFLint (download plugins)
+    - name: Initialize TFLint
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        echo "::group::Initializing TFLint"
+        tflint --init --config="$TFLINT_CONFIG"
+        echo "::endgroup::"
+    
+    # Run TFLint scan
+    - name: Run TFLint Scan
+      id: tflint-scan
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        echo "::group::Running TFLint Scan"
+        
+        # Build TFLint command
+        TFLINT_CMD="tflint --format=${{ inputs.output_format }} --config=$TFLINT_CONFIG"
+        
+        if [ "${{ inputs.tflint_recursive }}" = "true" ]; then
+          TFLINT_CMD="$TFLINT_CMD --recursive"
+        fi
+        
+        echo "Executing: $TFLINT_CMD"
+        echo ""
+        
+        # Run TFLint and capture exit code
+        set +e
+        eval $TFLINT_CMD
+        EXIT_CODE=$?
+        set -e
+        
+        echo "::endgroup::"
+        
+        # Set outputs
+        echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+        
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "result=success" >> $GITHUB_OUTPUT
+          echo "✅ TFLint scan completed successfully - no issues found"
+        else
+          echo "result=failure" >> $GITHUB_OUTPUT
+          echo "❌ TFLint scan found issues (exit code: $EXIT_CODE)"
+        fi
+        
+        # Fail if configured to do so
+        if [ "${{ inputs.fail_on_error }}" = "true" ] && [ $EXIT_CODE -ne 0 ]; then
+          echo "::error::TFLint found issues. Review the output above for details."
+          exit $EXIT_CODE
+        fi
+        
+        exit 0
+    
+    # Generate summary for GitHub Actions UI
+    - name: Generate TFLint Summary
+      if: always()
+      shell: bash
+      run: |
+        echo "## 🔍 TFLint Scan Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.tflint-scan.outputs.result }}" = "success" ]; then
+          echo "### ✅ Status: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No issues found in Terraform/Terragrunt code." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Status: Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "TFLint detected issues in your code. Review the scan output above for details." >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Configuration" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Working Directory | \`${{ inputs.working_directory }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| TFLint Version | \`${{ inputs.tflint_version }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| Recursive Scan | \`${{ inputs.tflint_recursive }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| Output Format | \`${{ inputs.output_format }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| AWS Plugin Version | \`${{ inputs.aws_plugin_version }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| Terraform Preset | \`${{ inputs.terraform_plugin_preset }}\` |" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "${{ inputs.custom_config_path }}" ]; then
+          echo "| Custom Config | \`${{ inputs.custom_config_path }}\` |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Custom Config | Using default or repo .tflint.hcl |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "_Exit Code: ${{ steps.tflint-scan.outputs.exit_code }}_" >> $GITHUB_STEP_SUMMARY
