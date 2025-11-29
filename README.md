@@ -248,3 +248,42 @@ core-cloud-workflow-tflint-scan/
     └── test-terragrunt
         ├── main.tf
         └── terragrunt.hcl
+
+```
+## 🔒 SAST Configuration (Checkov & SonarQube)
+
+This repository includes intentionally invalid Terraform and Terragrunt code under `tests/**` and `examples/**` for validating the reusable TFLint workflow. These directories must not be scanned by SAST tools, as they will always contain failing content by design.
+
+To ensure accurate SAST reporting, the following configuration files are used:
+
+### 🛡️ Checkov Configuration 
+– `.checkov.yaml`
+
+```yaml
+skip-path:
+  # All TFLint test fixtures (intentionally invalid Terraform configurations)
+  - '^tests/.*'
+  # Example usage directories (intentionally invalid Terraform configurations)
+  - '^examples/.*'
+
+```
+This prevents Checkov from scanning directories containing intentionally broken code, avoiding false positives and SARIF upload failures.
+
+### 📘 SonarQube Configuration 
+– `sonar-project.properties`
+
+```
+sonar.exclusions=tests/**,examples/**
+
+```
+This removes all test fixtures and example IaC from SonarQube analysis, ensuring the Quality Gate only evaluates the actual workflow, action code, and scripts.
+
+| Directory           | Purpose                                               | Excluded From SAST? |
+| ------------------- | ----------------------------------------------------- | ------------------- |
+| `tests/**`          | Local TFLint test harness (intentionally invalid IaC) | ✅ Yes               |
+| `examples/**`       | Usage examples for the reusable workflow              | ✅ Yes               |
+| `.github/workflows` | Workflow definitions                                  | ❌ No                |
+| `action.yaml`       | Composite action logic                                | ❌ No                |
+| `tflint.yaml`       | Reusable workflow                                     | ❌ No                |
+
+This setup ensures clean SAST results without blocking PRs due to intentionally invalid IaC.
