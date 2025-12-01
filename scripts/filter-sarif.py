@@ -3,16 +3,19 @@ import json
 import pathlib
 import sys
 
-sarif_path = pathlib.Path("results.sarif")
+# Optional: allow passing a SARIF file path as the first argument
+if len(sys.argv) > 1:
+    sarif_path = pathlib.Path(sys.argv[1])
+else:
+    sarif_path = pathlib.Path("checkov-results.sarif")
 
 if not sarif_path.exists():
-  print("results.sarif not found, nothing to filter.")
-  sys.exit(0)
+    print(f"{sarif_path} not found, nothing to filter.")
+    sys.exit(0)
 
 if sarif_path.is_dir():
-  print("results.sarif is a directory, expected a SARIF file. Nothing to filter.")
-  sys.exit(0)
-
+    print(f"{sarif_path} is a directory, expected a SARIF file. Nothing to filter.")
+    sys.exit(0)
 
 with sarif_path.open() as f:
     data = json.load(f)
