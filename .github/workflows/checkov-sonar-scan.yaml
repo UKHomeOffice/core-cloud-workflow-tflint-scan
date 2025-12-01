@@ -41,8 +41,8 @@ jobs:
       - name: Run Checkov (generate SARIF)
         run: |
           # Run Checkov against the repo. Configuration from .checkov.yaml
-          # will still be honored (including skip-path), but we additionally
-          # filter out test/example findings in a post-step.
+          # will still be honored. Checkov will create a directory at the
+          # output path and place the SARIF file inside it.
           checkov -d . \
             --quiet \
             --soft-fail \
@@ -51,12 +51,14 @@ jobs:
 
       - name: Filter test fixtures out of SARIF
         run: |
-          python3 scripts/filter-sarif.py
+          SARIF_FILE="checkov-results.sarif/results_sarif.sarif"
+          echo "Filtering SARIF file at: $SARIF_FILE"
+          python3 scripts/filter-sarif.py "$SARIF_FILE"
 
       - name: Upload SARIF file (Source Code)
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: checkov-results.sarif
+          sarif_file: checkov-results.sarif/results_sarif.sarif
           category: checkov-scan
 
   sonarqube-scanner:
