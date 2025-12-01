@@ -52,10 +52,6 @@ on:
         description: 'TFLint scan result'
         value: ${{ jobs.tflint.outputs.result }}
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   tflint:
     runs-on: ubuntu-latest
