@@ -1,6 +1,6 @@
 name: 'TFLint Scan'
 description: 'Run TFLint security and linting checks on Terraform/Terragrunt code'
-author: 'Core Cloud Platform Team'
+author: 'Core Cloud Sauron Team'
 
 branding:
   icon: 'shield'
@@ -12,6 +12,12 @@ inputs:
     required: false
     default: '.'
   
+  tflint_version:
+    description: 'TFLint version to install (e.g., v0.54.0)'
+    required: false
+    type: string
+    default: 'v0.54.0'
+
   tflint_recursive:
     description: 'Run TFLint recursively on subdirectories'
     required: false
@@ -68,13 +74,11 @@ runs:
         restore-keys: |
           ${{ runner.os }}-tflint-
     
-    # Install TFLint using official install script
-    - name: Install TFLint
-      shell: bash
-      run: |
-        curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-        echo "Installed TFLint:"
-        tflint --version
+    # Setup TFLint
+    - name: Setup TFLint
+      uses: terraform-linters/setup-tflint@v6
+      with:
+        tflint_version: ${{ inputs.tflint_version }}
     
     # Verify TFLint installation
     - name: Show TFLint Version
@@ -214,6 +218,7 @@ runs:
         echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
         echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
         echo "| Working Directory | \`${{ inputs.working_directory }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| TFLint Version | \`${{ inputs.tflint_version }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| Recursive Scan | \`${{ inputs.tflint_recursive }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| Output Format | \`${{ inputs.output_format }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| AWS Plugin Version | \`${{ inputs.aws_plugin_version }}\` |" >> $GITHUB_STEP_SUMMARY
