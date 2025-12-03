@@ -207,11 +207,11 @@ runs:
         echo "" >> $GITHUB_STEP_SUMMARY
         
         if [ "${{ steps.tflint-scan.outputs.result }}" = "success" ]; then
-          echo "### ✅ Status: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Status: Passed - No linting issues detected" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "No issues found in Terraform/Terragrunt code." >> $GITHUB_STEP_SUMMARY
         else
-          echo "### ❌ Status: Failed" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Status: Failed - Linting issues detected" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "TFLint detected issues in your code. Review the scan output for details." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

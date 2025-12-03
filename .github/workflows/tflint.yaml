@@ -186,9 +186,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ steps.tflint-scan.outcome }}" = "success" ]; then
-            echo "✅ **Status:** Passed - No issues found" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** Passed - No linting issues detected" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Status:** Failed - Issues detected" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Status:** Failed - Linting issues detected" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
 
             echo "<details><summary>Click to expand TFLint issues</summary>" >> $GITHUB_STEP_SUMMARY
@@ -200,7 +200,7 @@ jobs:
             else
               echo "No output captured." >> $GITHUB_STEP_SUMMARY
             fi
-            
+
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
           fi
