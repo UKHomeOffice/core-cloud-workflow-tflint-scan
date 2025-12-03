@@ -147,6 +147,9 @@ jobs:
         continue-on-error: ${{ inputs.fail_on_error == false }}
         run: |
           echo "Running TFLint..."
+
+          TFLINT_OUTPUT_FILE="tflint_output.txt"
+          echo "TFLINT_OUTPUT_FILE=$TFLINT_OUTPUT_FILE" >> $GITHUB_ENV
           
           TFLINT_CMD="tflint --format=${{ inputs.output_format }}"
           
@@ -161,7 +164,18 @@ jobs:
           fi
           
           echo "Executing: $TFLINT_CMD"
-          eval $TFLINT_CMD
+
+          # Save output to file AND show in logs
+          set +e
+          eval $TFLINT_CMD | tee "$TFLINT_OUTPUT_FILE"
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+
+          echo "TFLINT_EXIT_CODE=$EXIT_CODE" >> $GITHUB_ENV
+
+          if [ $EXIT_CODE -ne 0 ] && [ "${{ inputs.fail_on_error }}" = "true" ]; then
+           exit $EXIT_CODE
+          fi
       
       # Generate summary for PR/Actions UI
       - name: Generate TFLint Summary
@@ -175,6 +189,20 @@ jobs:
             echo "✅ **Status:** Passed - No issues found" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Status:** Failed - Issues detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            echo "<details><summary>Click to expand TFLint issues</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+
+            if [ -f "${{ inputs.working_directory }}/$TFLINT_OUTPUT_FILE" ]; then
+              cat "${{ inputs.working_directory }}/$TFLINT_OUTPUT_FILE" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "No output captured." >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY

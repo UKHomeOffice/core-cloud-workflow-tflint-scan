@@ -165,13 +165,19 @@ runs:
         echo "Executing: $TFLINT_CMD"
         echo ""
         
-        # Run TFLint and capture exit code
+        # Run TFLint and capture exit code + output
+        TFLINT_OUTPUT_FILE="tflint_output.txt"
+
         set +e
-        eval $TFLINT_CMD
-        EXIT_CODE=$?
+        # tee writes output to both the console and file
+        eval $TFLINT_CMD 2>&1 | tee "$TFLINT_OUTPUT_FILE"
+        EXIT_CODE=${PIPESTATUS[0]}
         set -e
         
         echo "::endgroup::"
+
+        # Expose log file path via env so the summary step can read it
+        echo "TFLINT_OUTPUT_FILE=$TFLINT_OUTPUT_FILE" >> $GITHUB_ENV
         
         # Set outputs
         echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
@@ -207,8 +213,27 @@ runs:
         else
           echo "### ❌ Status: Failed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "TFLint detected issues in your code. Review the scan output above for details." >> $GITHUB_STEP_SUMMARY
+          echo "TFLint detected issues in your code. Review the scan output for details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          
+          echo "<details><summary>Click to expand TFLint issues</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          if [ -n "${TFLINT_OUTPUT_FILE:-}" ] && [ -f "${{ inputs.working_directory }}/$TFLINT_OUTPUT_FILE" ]; then
+             # If we have a huge output, we can swap cat for tail command:
+            # tail -n 200 "${{ inputs.working_directory }}/$TFLINT_OUTPUT_FILE" >> $GITHUB_STEP_SUMMARY
+            # echo "...(truncated)" >> $GITHUB_STEP_SUMMARY
+            cat "${{ inputs.working_directory }}/$TFLINT_OUTPUT_FILE" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "TFLint output file not found." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
         fi
+
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "---" >> $GITHUB_STEP_SUMMARY
