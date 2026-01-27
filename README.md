@@ -13,6 +13,21 @@ A reusable GitHub Actions composite action for running TFLint security and linti
 
 > **Note**: For tag enforcement, please use the [Checkov workflow](https://github.com/UKHomeOffice/core-cloud-workflow-checkov-sast-scan) which is the standard tool for tag compliance checking.
 
+## Checkout behavior
+
+By default, this composite action **does not checkout the repository**.
+
+This follows GitHub Actions best practice:  
+the **caller workflow** is responsible for checking out the code it wants to scan.
+
+### Typical usage (recommended)
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v0.1.0
+```
+
 ## Usage
 
 ### Basic Usage (Terraform Modules)
