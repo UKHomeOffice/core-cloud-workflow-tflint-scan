@@ -20,15 +20,28 @@ By default, this composite action **does not checkout the repository**.
 This follows GitHub Actions best practice:  
 the **caller workflow** is responsible for checking out the code it wants to scan.
 
+## Usage
+
 ### Typical usage (recommended)
 
+Use the reusable TFLint workflow. This is the preferred approach for most repositories:
+
 ```yaml
-steps:
-  - uses: actions/checkout@v4
-  - uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v0.1.0
+jobs:
+  tflint-scan:
+    uses: UKHomeOffice/core-cloud-workflow-tflint-scan/.github/workflows/tflint.yaml@v0.1.0
 ```
 
-## Usage
+Optionally add inputs:
+
+```yaml
+jobs:
+  tflint-scan:
+    uses: UKHomeOffice/core-cloud-workflow-tflint-scan/.github/workflows/tflint.yaml@v0.1.0
+    with:
+      working_directory: .
+      tflint_recursive: true
+```
 
 ### Basic Usage (Terraform Modules)
 ```yaml
@@ -46,18 +59,21 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Run TFLint
-        uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v1
+        uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v0.1.0
         with:
           tflint_recursive: true
 ```
 
 ### Terragrunt Repository
 ```yaml
-- name: Run TFLint on Terragrunt
-  uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v1
-  with:
-    working_directory: '.'
-    tflint_recursive: true
+steps:
+  - uses: actions/checkout@v4
+
+  - name: Run TFLint on Terragrunt
+    uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v0.1.0
+    with:
+      working_directory: '.'
+      tflint_recursive: true
 ```
 
 ### With Custom Configuration
@@ -77,6 +93,23 @@ jobs:
     working_directory: 'modules/aws/vpc'
     tflint_recursive: false
 ```
+
+## Composite action usage (advanced)
+### Composite action when checkout is handled by the caller (recommended)
+
+Use this when you want to embed TFLint into an existing job
+that already checks out the repository:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+
+  - name: TFLint Scan
+    uses: UKHomeOffice/core-cloud-workflow-tflint-scan@v0.1.0
+    with:
+      checkout: false
+```
+
 
 ## Inputs
 
