@@ -148,6 +148,8 @@ runs:
     - name: Initialize TFLint
       shell: bash
       working-directory: ${{ inputs.working_directory }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         echo "::group::Initializing TFLint"
         tflint --init --config="$TFLINT_CONFIG"
